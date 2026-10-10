@@ -1,0 +1,148 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dictionnaire français</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <a class="logo" href="/">Dictionnaire français</a>
+    </header>
+
+    <main>
+        <h1>Trouve la définition d'un mot</h1>
+        <p class="intro">
+            Écris un mot français dans le champ ci-dessous.
+            Le résultat s'affiche automatiquement.
+        </p>
+
+        <input
+            id="word"
+            type="search"
+            placeholder="Écris un mot français..."
+            autocomplete="off"
+            spellcheck="false"
+        >
+
+        <p id="status" role="status">En attente de saisie.</p>
+
+        <section id="result" aria-live="polite">
+            <h2>Définition</h2>
+            <p>La définition apparaîtra ici.</p>
+        </section>
+
+        <footer>Source des définitions : Wiktionnaire français</footer>
+    </main>
+
+    <script>
+        const input = document.getElementById("word");
+        const status = document.getElementById("status");
+        const result = document.getElementById("result");
+
+        let timer;
+        let controller;
+        let requestId = 0;
+
+        function showMessage(title, text, isError = false) {
+            result.replaceChildren();
+
+            const heading = document.createElement("h2");
+            heading.textContent = title;
+
+            const paragraph = document.createElement("p");
+            paragraph.textContent = text;
+
+            if (isError) paragraph.className = "error";
+
+            result.append(heading, paragraph);
+        }
+
+        async function searchDefinition(word) {
+            const id = ++requestId;
+
+            if (controller) {
+                controller.abort();
+                controller = null;
+            }
+
+            if (!word) {
+                status.textContent = "En attente de saisie.";
+                showMessage("Définition", "La définition apparaîtra ici.");
+                return;
+            }
+
+            if (/\s/.test(word)) {
+                status.textContent = "Saisis un seul mot à la fois.";
+                return;
+            }
+
+            controller = new AbortController();
+            status.textContent = "Recherche en cours...";
+            showMessage("Recherche", "Connexion au dictionnaire...");
+
+            try {
+                const response = await fetch(
+                    "/api/definition?word=" + encodeURIComponent(word),
+                    { signal: controller.signal }
+                );
+
+                const data = await response.json();
+
+                if (id !== requestId) return;
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Mot introuvable.");
+                }
+
+                result.replaceChildren();
+
+                const heading = document.createElement("h2");
+                heading.textContent = data.word;
+
+                const definition = document.createElement("p");
+                definition.className = "definition";
+                definition.textContent = data.definition;
+
+                const source = document.createElement("p");
+                source.className = "source";
+                source.textContent = "Source : " + data.source;
+
+                result.append(heading, definition, source);
+                status.textContent = "Résultat trouvé.";
+
+            } catch (error) {
+                if (error.name === "AbortError") return;
+                if (id !== requestId) return;
+
+                showMessage(
+                    "Aucun résultat",
+                    error.message || "Une erreur est survenue.",
+                    true
+                );
+
+                status.textContent = "Recherche terminée.";
+            } finally {
+                if (id === requestId) controller = null;
+            }
+        }
+
+        input.addEventListener("input", () => {
+            clearTimeout(timer);
+
+            const word = input.value.trim();
+
+            if (!word) {
+                searchDefinition("");
+                return;
+            }
+
+            timer = setTimeout(() => {
+                searchDefinition(word);
+            }, 500);
+        });
+    </script>
+</body>
+</html>
