@@ -4,60 +4,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dictionnaire français</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="theme-color" content="#101827">
+    <meta name="description" content="Un dictionnaire français simple et gratuit pour rechercher la définition des mots.">
+    <title>LexiFrance — Dictionnaire français</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <header>
-        <a class="logo" href="/">Dictionnaire français</a>
+    <header class="topbar">
+        <a class="brand" href="/" aria-label="Accueil LexiFrance">
+            <span class="brand-icon">L</span>
+            <span>Lexi<span class="brand-light">France</span></span>
+        </a>
+        <span class="header-label">DICTIONNAIRE FRANÇAIS</span>
     </header>
 
-    <main>
-        <h1>Trouve la définition d'un mot</h1>
-        <p class="intro">
-            Écris un mot français dans le champ ci-dessous.
-            Le résultat s'affiche automatiquement.
-        </p>
+    <main class="container">
+        <section class="hero">
+            <div class="eyebrow">
+                <span class="eyebrow-dot"></span>
+                LE PLAISIR DES MOTS
+            </div>
 
-        <input
-            id="word"
-            type="search"
-            placeholder="Écris un mot français..."
-            autocomplete="off"
-            spellcheck="false"
-        >
+            <h1>Chaque mot a<br>son <span>histoire.</span></h1>
 
-        <p id="status" role="status">En attente de saisie.</p>
+            <p class="intro">
+                Découvre le sens des mots français et enrichis ton
+                vocabulaire, une recherche à la fois.
+            </p>
 
-        <section id="result" aria-live="polite">
-            <h2>Définition</h2>
-            <p>La définition apparaîtra ici.</p>
+            <div class="search-card">
+                <label for="word">Quel mot souhaites-tu découvrir ?</label>
+
+                <div class="search-box">
+                    <span class="search-icon" aria-hidden="true">⌕</span>
+                    <input id="word" type="search"
+                           placeholder="Ex. : persévérance"
+                           autocomplete="off"
+                           spellcheck="false"
+                           aria-describedby="status">
+                    <button id="clearButton" type="button"
+                            aria-label="Effacer la recherche"
+                            title="Effacer">×</button>
+                </div>
+
+                <p id="status" role="status" aria-live="polite">
+                    Écris un mot pour commencer.
+                </p>
+
+                <div class="suggestions">
+                    <span>À découvrir :</span>
+                    <button type="button" class="word-chip" data-word="courage">courage</button>
+                    <button type="button" class="word-chip" data-word="lumière">lumière</button>
+                    <button type="button" class="word-chip" data-word="sérénité">sérénité</button>
+                </div>
+            </div>
         </section>
 
-        <footer>Source des définitions : Wiktionnaire français</footer>
+        <section id="result" class="result-card" aria-live="polite">
+            <div class="result-decoration" aria-hidden="true">Aa</div>
+            <div class="result-content">
+                <span class="result-label">TON DICTIONNAIRE</span>
+                <h2>Le mot du jour t'attend</h2>
+                <p>Entre un mot dans la barre de recherche pour découvrir sa définition.</p>
+            </div>
+        </section>
+
+        <section class="features">
+            <article class="feature">
+                <span class="feature-icon" aria-hidden="true">⌕</span>
+                <h3>Recherche simple</h3>
+                <p>Écris un mot et découvre le résultat automatiquement.</p>
+            </article>
+
+            <article class="feature">
+                <span class="feature-icon" aria-hidden="true">文</span>
+                <h3>Vocabulaire français</h3>
+                <p>Explore les mots et approfondis tes connaissances.</p>
+            </article>
+
+            <article class="feature">
+                <span class="feature-icon" aria-hidden="true">↗</span>
+                <h3>Source indiquée</h3>
+                <p>Les définitions sont récupérées depuis le Wiktionnaire français.</p>
+            </article>
+        </section>
     </main>
+
+    <footer class="footer">
+        <a class="footer-brand" href="/">LexiFrance</a>
+        <p>Dictionnaire français gratuit · Définitions issues du Wiktionnaire</p>
+    </footer>
 
     <script>
         const input = document.getElementById("word");
         const status = document.getElementById("status");
         const result = document.getElementById("result");
+        const clearButton = document.getElementById("clearButton");
 
         let timer;
         let controller;
         let requestId = 0;
 
-        function showMessage(title, text, isError = false) {
+        function showMessage(title, message, isError = false) {
             result.replaceChildren();
+            result.className = "result-card";
+
+            const content = document.createElement("div");
+            content.className = "result-content";
+
+            const label = document.createElement("span");
+            label.className = "result-label";
+            label.textContent = isError ? "RECHERCHE" : "DICTIONNAIRE";
 
             const heading = document.createElement("h2");
             heading.textContent = title;
 
             const paragraph = document.createElement("p");
-            paragraph.textContent = text;
+            paragraph.textContent = message;
 
             if (isError) paragraph.className = "error";
 
-            result.append(heading, paragraph);
+            content.append(label, heading, paragraph);
+            result.append(content);
         }
 
         async function searchDefinition(word) {
@@ -69,8 +138,11 @@
             }
 
             if (!word) {
-                status.textContent = "En attente de saisie.";
-                showMessage("Définition", "La définition apparaîtra ici.");
+                status.textContent = "Écris un mot pour commencer.";
+                showMessage(
+                    "Le mot du jour t'attend",
+                    "Entre un mot dans la barre de recherche pour découvrir sa définition."
+                );
                 return;
             }
 
@@ -80,8 +152,8 @@
             }
 
             controller = new AbortController();
-            status.textContent = "Recherche en cours...";
-            showMessage("Recherche", "Connexion au dictionnaire...");
+            status.textContent = "Recherche en cours…";
+            showMessage("Recherche en cours", "Nous recherchons la définition.");
 
             try {
                 const response = await fetch(
@@ -94,10 +166,23 @@
                 if (id !== requestId) return;
 
                 if (!response.ok) {
-                    throw new Error(data.error || "Mot introuvable.");
+                    throw new Error(data.error || "Définition introuvable.");
                 }
 
                 result.replaceChildren();
+                result.className = "result-card has-result";
+
+                const decoration = document.createElement("div");
+                decoration.className = "result-decoration";
+                decoration.setAttribute("aria-hidden", "true");
+                decoration.textContent = "Aa";
+
+                const content = document.createElement("div");
+                content.className = "result-content";
+
+                const label = document.createElement("span");
+                label.className = "result-label";
+                label.textContent = "DÉFINITION";
 
                 const heading = document.createElement("h2");
                 heading.textContent = data.word;
@@ -110,9 +195,10 @@
                 source.className = "source";
                 source.textContent = "Source : " + data.source;
 
-                result.append(heading, definition, source);
-                status.textContent = "Résultat trouvé.";
+                content.append(label, heading, definition, source);
+                result.append(decoration, content);
 
+                status.textContent = "Définition trouvée.";
             } catch (error) {
                 if (error.name === "AbortError") return;
                 if (id !== requestId) return;
@@ -122,7 +208,6 @@
                     error.message || "Une erreur est survenue.",
                     true
                 );
-
                 status.textContent = "Recherche terminée.";
             } finally {
                 if (id === requestId) controller = null;
@@ -132,6 +217,12 @@
         input.addEventListener("input", () => {
             clearTimeout(timer);
 
+            if (controller) {
+                controller.abort();
+                controller = null;
+            }
+            requestId++;
+
             const word = input.value.trim();
 
             if (!word) {
@@ -139,9 +230,24 @@
                 return;
             }
 
-            timer = setTimeout(() => {
-                searchDefinition(word);
-            }, 500);
+            status.textContent = "Recherche en cours…";
+            timer = setTimeout(() => searchDefinition(word), 450);
+        });
+
+        clearButton.addEventListener("click", () => {
+            input.value = "";
+            input.focus();
+            clearTimeout(timer);
+            if (controller) controller.abort();
+            searchDefinition("");
+        });
+
+        document.querySelectorAll(".word-chip").forEach(button => {
+            button.addEventListener("click", () => {
+                input.value = button.dataset.word;
+                input.dispatchEvent(new Event("input"));
+                input.focus();
+            });
         });
     </script>
 </body>
